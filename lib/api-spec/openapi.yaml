@@ -1,0 +1,608 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Arpit Thrift ecommerce API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: products
+    description: Product operations
+  - name: orders
+    description: Order operations
+  - name: admin
+    description: Admin operations
+  - name: payments
+    description: Payment operations
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: List all products
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [price_asc, price_desc, newest, popular]
+        - name: inStock
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [admin]
+      summary: Create a product (admin)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+
+  /products/featured:
+    get:
+      operationId: listFeaturedProducts
+      tags: [products]
+      summary: Get featured, new arrivals, and best sellers
+      responses:
+        "200":
+          description: Featured products grouped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeaturedProducts"
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Get a product by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateProduct
+      tags: [admin]
+      summary: Update a product (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+    delete:
+      operationId: deleteProduct
+      tags: [admin]
+      summary: Delete a product (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [admin]
+      summary: List all orders (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending_payment, payment_verified, shipped, delivered, cancelled]
+      responses:
+        "200":
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Place an order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get an order by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Not found
+
+  /orders/{id}/status:
+    patch:
+      operationId: updateOrderStatus
+      tags: [admin]
+      summary: Update order status (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderStatusUpdate"
+      responses:
+        "200":
+          description: Updated order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /payments/create-order:
+    post:
+      operationId: createPaymentOrder
+      tags: [payments]
+      summary: Create a Razorpay order for an existing DB order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentOrderInput"
+      responses:
+        "200":
+          description: Razorpay order details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOrderResponse"
+
+  /payments/verify:
+    post:
+      operationId: verifyPayment
+      tags: [payments]
+      summary: Verify Razorpay payment signature after checkout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentVerifyInput"
+      responses:
+        "200":
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentVerifyResponse"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Product:
+      type: object
+      required: [id, name, price, images, category, inStock, isNew, isBestSeller, isFeatured, createdAt]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        originalPrice:
+          type: ["number", "null"]
+        images:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        sizes:
+          type: array
+          items:
+            type: string
+        colors:
+          type: array
+          items:
+            type: string
+        inStock:
+          type: boolean
+        stockCount:
+          type: ["integer", "null"]
+        isNew:
+          type: boolean
+        isBestSeller:
+          type: boolean
+        isFeatured:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+
+    ProductInput:
+      type: object
+      required: [name, price, images, category]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        originalPrice:
+          type: ["number", "null"]
+        images:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        sizes:
+          type: array
+          items:
+            type: string
+        colors:
+          type: array
+          items:
+            type: string
+        inStock:
+          type: boolean
+        stockCount:
+          type: ["integer", "null"]
+        isNew:
+          type: boolean
+        isBestSeller:
+          type: boolean
+        isFeatured:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+
+    ProductUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        originalPrice:
+          type: ["number", "null"]
+        images:
+          type: array
+          items:
+            type: string
+        category:
+          type: string
+        sizes:
+          type: array
+          items:
+            type: string
+        colors:
+          type: array
+          items:
+            type: string
+        inStock:
+          type: boolean
+        stockCount:
+          type: ["integer", "null"]
+        isNew:
+          type: boolean
+        isBestSeller:
+          type: boolean
+        isFeatured:
+          type: boolean
+        tags:
+          type: array
+          items:
+            type: string
+
+    FeaturedProducts:
+      type: object
+      required: [featured, newArrivals, bestSellers]
+      properties:
+        featured:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        newArrivals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        bestSellers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+
+    OrderItem:
+      type: object
+      required: [productId, productName, productImage, price, quantity, size, color]
+      properties:
+        productId:
+          type: integer
+        productName:
+          type: string
+        productImage:
+          type: string
+        price:
+          type: number
+        quantity:
+          type: integer
+        size:
+          type: ["string", "null"]
+        color:
+          type: ["string", "null"]
+
+    Order:
+      type: object
+      required: [id, orderId, fullName, phone, address, city, state, pincode, items, totalAmount, status, paymentStatus, createdAt]
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: string
+        fullName:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        pincode:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        totalAmount:
+          type: number
+        status:
+          type: string
+          enum: [pending_payment, payment_verified, shipped, delivered, cancelled]
+        paymentStatus:
+          type: string
+        razorpayOrderId:
+          type: ["string", "null"]
+        razorpayPaymentId:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    OrderInput:
+      type: object
+      required: [fullName, phone, address, city, state, pincode, items, totalAmount]
+      properties:
+        fullName:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        pincode:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        totalAmount:
+          type: number
+        notes:
+          type: ["string", "null"]
+
+    OrderStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [pending_payment, payment_verified, shipped, delivered, cancelled]
+
+    PaymentOrderInput:
+      type: object
+      required: [orderId]
+      properties:
+        orderId:
+          type: integer
+
+    PaymentOrderResponse:
+      type: object
+      required: [razorpayOrderId, amount, currency, keyId, orderId, orderRef, customerName, customerPhone]
+      properties:
+        razorpayOrderId:
+          type: string
+        amount:
+          type: integer
+        currency:
+          type: string
+        keyId:
+          type: string
+        orderId:
+          type: integer
+        orderRef:
+          type: string
+        customerName:
+          type: string
+        customerPhone:
+          type: string
+
+    PaymentVerifyInput:
+      type: object
+      required: [razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId]
+      properties:
+        razorpay_order_id:
+          type: string
+        razorpay_payment_id:
+          type: string
+        razorpay_signature:
+          type: string
+        orderId:
+          type: integer
+
+    PaymentVerifyResponse:
+      type: object
+      required: [success, orderId, orderRef]
+      properties:
+        success:
+          type: boolean
+        orderId:
+          type: integer
+        orderRef:
+          type: string
+
+    AdminStats:
+      type: object
+      required: [totalOrders, pendingPayment, paymentVerified, shipped, delivered, totalRevenue, totalProducts]
+      properties:
+        totalOrders:
+          type: integer
+        pendingPayment:
+          type: integer
+        paymentVerified:
+          type: integer
+        shipped:
+          type: integer
+        delivered:
+          type: integer
+        totalRevenue:
+          type: number
+        totalProducts:
+          type: integer
