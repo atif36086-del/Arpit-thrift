@@ -15,6 +15,7 @@ app.use(
           id: req.id,
           method: req.method,
           url: req.url?.split("?")[0],
+          userId: (req as any).user?.id,
         };
       },
       res(res) {
@@ -23,12 +24,26 @@ app.use(
         };
       },
     },
-  }),
+  })
 );
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+app.use((req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
+app.use((err: any, req: any, res: any, next: any) => {
+  logger.error({ err }, "Unhandled error");
+  res.status(500).json({ error: "Internal server error" });
+});
 
 export default app;
